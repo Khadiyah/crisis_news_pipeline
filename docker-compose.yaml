@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+ #1. PostgreSQL database for storing news.
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5432:5432"
+
+ #2. Apache Airflow (Pipeline Manager)
+  airflow-webserver:
+    image: apache/airflow:2.7.1
+    command: webserver
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags # Folder for storing code to retrieve news.

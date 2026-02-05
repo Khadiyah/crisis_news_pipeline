@@ -1,0 +1,5 @@
+logs/
+plugins/
+postgres_data/
+__pycache__/
+.DS_Store
