@@ -1,13 +1,18 @@
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
 import sqlite3
 import feedparser
 import pandas as pd
 import urllib.parse
 from tabulate import tabulate
+import os
 
-# --- 1. CONFIGURATION ---
-DB_NAME = "disaster.db"
+# --- CONFIGURATION ---
+# ใช้ Path แบบ Absolute เพื่อให้ Airflow หาไฟล์เจอแน่นอน
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_PATH, "disaster.db")
 
-# ✅ ปรับปรุง Keyword: ตัด PM 2.5 ออก เหลือแค่ภัยพิบัติฉุกเฉิน
 SEARCH_QUERY = "น้ำท่วม ไฟไหม้ แผ่นดินไหว สึนามิ ดินถล่ม"
 ENCODED_QUERY = urllib.parse.quote(SEARCH_QUERY)
 RSS_URL = f"https://news.google.com/rss/search?q={ENCODED_QUERY}&hl=th-TH&gl=TH&ceid=TH:th"
@@ -31,8 +36,9 @@ PROVINCES_LIST = [
     "อุทัยธานี", "อุบลราชธานี"
 ]
 
-# --- 2. DATABASE SETUP ---
-def init_db():
+# --- FUNCTIONS (LOGIC) ---
+def run_pipeline():
+    # 1. Init DB
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute('CREATE TABLE IF NOT EXISTS provinces (id INTEGER PRIMARY KEY AUTOINCREMENT, name_th TEXT UNIQUE NOT NULL)')
@@ -40,27 +46,15 @@ def init_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, link TEXT UNIQUE,
                     published_date TEXT, source TEXT, risk_level INTEGER DEFAULT 0,
                     province_id INTEGER, FOREIGN KEY (province_id) REFERENCES provinces(id))''')
-    conn.commit()
-    return conn
-
-def seed_provinces(conn):
-    c = conn.cursor()
+    
+    # 2. Seed Provinces
     for province in PROVINCES_LIST:
         c.execute("INSERT OR IGNORE INTO provinces (name_th) VALUES (?)", (province,))
-    conn.commit()
-
-# --- 3. DATA INGESTION ---
-def fetch_and_save_news(conn):
-    print(f"🔄 กำลังดึงข่าว (น้ำท่วม, ไฟไหม้, แผ่นดินไหว, สึนามิ, ดินถล่ม)...")
+    
+    # 3. Fetch Data
+    print(f"🔄 Fetching: {SEARCH_QUERY}")
     feed = feedparser.parse(RSS_URL)
-    
-    if len(feed.entries) == 0:
-        print("⚠️ ไม่พบข่าว (กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต)")
-        return
-
-    c = conn.cursor()
     new_count = 0
-    
     for entry in feed.entries:
         title = entry.title
         link = entry.link
@@ -72,8 +66,7 @@ def fetch_and_save_news(conn):
             if prov in title:
                 c.execute("SELECT id FROM provinces WHERE name_th=?", (prov,))
                 result = c.fetchone()
-                if result:
-                    matched_province_id = result[0]
+                if result: matched_province_id = result[0]
                 break
         
         try:
@@ -81,37 +74,33 @@ def fetch_and_save_news(conn):
                       (title, link, published, source, matched_province_id))
             if c.rowcount > 0: new_count += 1
         except: pass
-
+    
     conn.commit()
-    print(f"✅ บันทึกข่าวใหม่สำเร็จ: {new_count} ข่าว")
-
-# --- 4. PRETTY DISPLAY ---
-def show_data(conn):
-    print("\n" + "="*80)
-    print(" 📊 DIGITAL ANALYTICS: CRISIS DATA PIPELINE (WEEK 1)")
-    print("="*80)
+    print(f"✅ Saved {new_count} new entries.")
     
-    # ดึงข้อมูล 10 ข่าวล่าสุด
-    df = pd.read_sql_query('''
-        SELECT n.id, p.name_th as Province, n.title as Title, n.source as Source, n.published_date as Date
-        FROM news n 
-        LEFT JOIN provinces p ON n.province_id = p.id 
-        ORDER BY n.id DESC LIMIT 10
-    ''', conn)
-    
-    if not df.empty:
-        df['Province'] = df['Province'].fillna("ไม่ระบุ")
-        df['Title'] = df['Title'].apply(lambda x: x[:50] + "..." if len(x) > 50 else x)
-        df['Date'] = df['Date'].apply(lambda x: x[:16])
-        
-        print(tabulate(df, headers='keys', tablefmt='psql', showindex=False))
-        print(f"\n💡 Note: ข้อมูลจริงอาจระบุจังหวัดไม่ได้ครบถ้วน (จะแก้ไขด้วย Mock Data ใน Week 2)")
-    else:
-        print("❌ ยังไม่มีข้อมูลในฐานข้อมูล")
+    # 4. Show Data (Log to Airflow)
+    df = pd.read_sql_query('SELECT * FROM news ORDER BY id DESC LIMIT 5', conn)
+    print(tabulate(df, headers='keys', tablefmt='psql'))
+    conn.close()
 
-if __name__ == "__main__":
-    connection = init_db()
-    seed_provinces(connection)
-    fetch_and_save_news(connection)
-    show_data(connection)
-    connection.close()
+# --- DAG DEFINITION ---
+default_args = {
+    'owner': 'crisis_team',
+    'depends_on_past': False,
+    'start_date': datetime(2026, 2, 1), # เริ่มวันที่ 1 ก.พ. ตามแผน
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+with DAG(
+    'week1_crisis_ingestion',
+    default_args=default_args,
+    description='Pipeline ดึงข่าวภัยพิบัติ สัปดาห์ที่ 1',
+    schedule=timedelta(minutes=15),  # ✅ แก้จาก schedule_interval เป็น schedule
+    catchup=False
+) as dag:
+
+    task_fetch_news = PythonOperator(
+        task_id='fetch_crisis_news',
+        python_callable=run_pipeline
+    )
