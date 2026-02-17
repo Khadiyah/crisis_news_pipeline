@@ -23,3 +23,13 @@ services:
       - "8080:8080"
     volumes:
       - ./dags:/opt/airflow/dags # Folder for storing code to retrieve news.
+  airflow-scheduler:
+    image: apache/airflow:2.7.1
+    command: scheduler
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
