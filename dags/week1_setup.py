@@ -13,13 +13,15 @@ import os
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(BASE_PATH, "disaster.db")
 
-SEARCH_QUERY = "น้ำท่วม ไฟไหม้ แผ่นดินไหว สึนามิ ดินถล่ม"
+KEYWORDS_LIST = ["น้ำท่วม", "ไฟไหม้", "แผ่นดินไหว", "สึนามิ", "ดินถล่ม"]
+SEARCH_QUERY = " ".join(KEYWORDS_LIST)
 ENCODED_QUERY = urllib.parse.quote(SEARCH_QUERY)
 RSS_URLS = [
-    # Source 1: Google News 
     f"https://news.google.com/rss/search?q={ENCODED_QUERY}&hl=th-TH&gl=TH&ceid=TH:th",
-    # Source 2: ThaiPBS 
-    "https://www.thaipbs.or.th/rss/news"
+    "https://www.thaipbs.or.th/rss/news",
+    "https://www.thairath.co.th/rss/news",
+    "http://www.tmd.go.th/service/rss",
+    "https://www.springnews.co.th/rss/news"
 ]
 
 PROVINCES_LIST = [
@@ -56,26 +58,41 @@ def run_pipeline():
     for province in PROVINCES_LIST:
         c.execute("INSERT OR IGNORE INTO provinces (name_th) VALUES (?)", (province,))
     
-    # 3. Fetch Data (LOOP ผ่านทุก URL)
+
+    # 3. Loop Fetch & Filter
     total_new_count = 0
-    
     for url in RSS_URLS:
         print(f"🔄 Fetching from: {url}")
         feed = feedparser.parse(url)
         
         for entry in feed.entries:
+            # ✅ แก้ไขที่ 2: นิยามตัวแปรให้ครบถ้วนก่อนใช้งาน
             title = entry.title
             link = entry.link
-            published = entry.published if 'published' in entry else str(datetime.now())
-            source = entry.source.title if 'source' in entry else 'Unknown Source'
             
-            # Logic หาจังหวัด
+            # ✅ แก้ไขที่ 3: ปรับตรรกะการกรอง (Filter Logic)
+            is_disaster = False
+            if "google.com" in url or "tmd.go.th" in url:
+                is_disaster = True # แหล่งข้อมูลเหล่านี้กรองมาให้แล้วระดับหนึ่ง
+            else:
+                # ตรวจสอบว่ามี "คำ" ใน KEYWORDS_LIST อยู่ในชื่อข่าวหรือไม่
+                if any(kw in title for kw in KEYWORDS_LIST):
+                    is_disaster = True
+            
+            if not is_disaster:
+                continue # ข้ามข่าวการเมือง/บันเทิงไปทันที
+            
+            # --- บันทึกลง Database ---
+            published = entry.published if 'published' in entry else str(datetime.now())
+            source = entry.source.title if 'source' in entry else 'News Source'
+            
+            # Logic หาจังหวัด (Matching)
             matched_province_id = None
             for prov in PROVINCES_LIST:
                 if prov in title:
                     c.execute("SELECT id FROM provinces WHERE name_th=?", (prov,))
-                    result = c.fetchone()
-                    if result: matched_province_id = result[0]
+                    res = c.fetchone()
+                    if res: matched_province_id = res[0]
                     break
             
             try:
@@ -85,12 +102,8 @@ def run_pipeline():
             except: pass
     
     conn.commit()
-    print(f"✅ Saved {total_new_count} new entries from all sources.")
-    
-    # 4. Show Data (Log to Airflow)
-    df = pd.read_sql_query('SELECT id, source, title FROM news ORDER BY id DESC LIMIT 10', conn)
-    print(tabulate(df, headers='keys', tablefmt='psql'))
     conn.close()
+    print(f"✅ Finished! Added {total_new_count} relevant news items.")
 
 # --- DAG DEFINITION ---
 default_args = {
