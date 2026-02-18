@@ -13,23 +13,30 @@ services:
  #2. Apache Airflow (Pipeline Manager)
   airflow-webserver:
     image: apache/airflow:2.7.1
-    command: webserver
+    # เพิ่มส่วนนี้เพื่อบังคับลง Library ทุกครั้งที่เครื่องติด
+    entrypoint: >
+      bash -c "pip install feedparser pandas tabulate && airflow db upgrade && airflow webserver"
     depends_on:
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
     ports:
       - "8080:8080"
     volumes:
-      - ./dags:/opt/airflow/dags # Folder for storing code to retrieve news.
+      - ./dags:/opt/airflow/dags
+
   airflow-scheduler:
     image: apache/airflow:2.7.1
-    command: scheduler
+    # เพิ่มส่วนนี้เหมือนกันเพื่อให้หัวใจหลักมองเห็น Library ด้วย
+    entrypoint: >
+      bash -c "pip install feedparser pandas tabulate && airflow scheduler"
     depends_on:
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
     volumes:
       - ./dags:/opt/airflow/dags
