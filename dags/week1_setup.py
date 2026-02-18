@@ -15,7 +15,12 @@ DB_NAME = os.path.join(BASE_PATH, "disaster.db")
 
 SEARCH_QUERY = "น้ำท่วม ไฟไหม้ แผ่นดินไหว สึนามิ ดินถล่ม"
 ENCODED_QUERY = urllib.parse.quote(SEARCH_QUERY)
-RSS_URL = f"https://news.google.com/rss/search?q={ENCODED_QUERY}&hl=th-TH&gl=TH&ceid=TH:th"
+RSS_URLS = [
+    # Source 1: Google News 
+    f"https://news.google.com/rss/search?q={ENCODED_QUERY}&hl=th-TH&gl=TH&ceid=TH:th",
+    # Source 2: ThaiPBS 
+    "https://www.thaipbs.or.th/rss/news"
+]
 
 PROVINCES_LIST = [
     "กระบี่", "กรุงเทพมหานคร", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร",
@@ -51,35 +56,39 @@ def run_pipeline():
     for province in PROVINCES_LIST:
         c.execute("INSERT OR IGNORE INTO provinces (name_th) VALUES (?)", (province,))
     
-    # 3. Fetch Data
-    print(f"🔄 Fetching: {SEARCH_QUERY}")
-    feed = feedparser.parse(RSS_URL)
-    new_count = 0
-    for entry in feed.entries:
-        title = entry.title
-        link = entry.link
-        published = entry.published
-        source = entry.source.title if 'source' in entry else 'Google News'
+    # 3. Fetch Data (LOOP ผ่านทุก URL)
+    total_new_count = 0
+    
+    for url in RSS_URLS:
+        print(f"🔄 Fetching from: {url}")
+        feed = feedparser.parse(url)
         
-        matched_province_id = None
-        for prov in PROVINCES_LIST:
-            if prov in title:
-                c.execute("SELECT id FROM provinces WHERE name_th=?", (prov,))
-                result = c.fetchone()
-                if result: matched_province_id = result[0]
-                break
-        
-        try:
-            c.execute('INSERT OR IGNORE INTO news (title, link, published_date, source, province_id) VALUES (?, ?, ?, ?, ?)', 
-                      (title, link, published, source, matched_province_id))
-            if c.rowcount > 0: new_count += 1
-        except: pass
+        for entry in feed.entries:
+            title = entry.title
+            link = entry.link
+            published = entry.published if 'published' in entry else str(datetime.now())
+            source = entry.source.title if 'source' in entry else 'Unknown Source'
+            
+            # Logic หาจังหวัด
+            matched_province_id = None
+            for prov in PROVINCES_LIST:
+                if prov in title:
+                    c.execute("SELECT id FROM provinces WHERE name_th=?", (prov,))
+                    result = c.fetchone()
+                    if result: matched_province_id = result[0]
+                    break
+            
+            try:
+                c.execute('INSERT OR IGNORE INTO news (title, link, published_date, source, province_id) VALUES (?, ?, ?, ?, ?)', 
+                          (title, link, published, source, matched_province_id))
+                if c.rowcount > 0: total_new_count += 1
+            except: pass
     
     conn.commit()
-    print(f"✅ Saved {new_count} new entries.")
+    print(f"✅ Saved {total_new_count} new entries from all sources.")
     
     # 4. Show Data (Log to Airflow)
-    df = pd.read_sql_query('SELECT * FROM news ORDER BY id DESC LIMIT 5', conn)
+    df = pd.read_sql_query('SELECT id, source, title FROM news ORDER BY id DESC LIMIT 10', conn)
     print(tabulate(df, headers='keys', tablefmt='psql'))
     conn.close()
 
