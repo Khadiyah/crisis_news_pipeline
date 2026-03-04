@@ -9,7 +9,7 @@ import logging
 import requests
 
 # --- CONFIGURATION ---
-# 1. URL ที่คัดลอกมาจาก Discord (Webhooks) 
+# 1. URL ที่คัดลอกมาจาก Discord (Webhooks)
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1478580196314452050/Rbo7zMAcUw3csQWV5mpoj3JCSBDtjRLbkvTw69H5G1OC18yKgx59-QR3fFtKlE_rPA7t" 
 
 # 2. ตั้งค่าการค้นหาข่าว
@@ -23,8 +23,13 @@ RSS_URLS = [
 
 def send_discord_alert(title, link, severity):
     """ฟังก์ชันส่งการแจ้งเตือนไปยัง Discord ในชื่อ Warning Center"""
-    # กำหนดสีแถบข้างข้อความ (แดง = High, ส้ม = Medium)
-    color = 15158332 if severity == 'High' else 15105570
+    # กำหนดสีแถบข้างข้อความ (แดง = High, ส้ม = Medium, เหลือง = Low)
+    if severity == 'High':
+        color = 15158332 # Red
+    elif severity == 'Medium':
+        color = 15105570 # Orange
+    else:
+        color = 16776960 # Yellow สำหรับระดับ Low
     
     payload = {
         "username": "Warning Center",
@@ -54,10 +59,16 @@ def fetch_and_load_to_postgres():
         for entry in feed.entries:
             title = entry.title
             link = entry.link
-            # วิเคราะห์ความรุนแรงเบื้องต้นจาก Keywords
-            severity = 'High' if any(kw in title for kw in ["ด่วน", "วิกฤต", "สึนามิ", "ตาย", "พัง"]) else 'Medium'
             
-            # ตรวจสอบว่าข่าวนี้มีอยู่แล้วในฐานข้อมูลหรือไม่ (เช็คจาก link)
+            # วิเคราะห์ความรุนแรงเบื้องต้น
+            if any(kw in title for kw in ["ด่วน", "วิกฤต", "สึนามิ", "ตาย", "พัง"]):
+                severity = 'High'
+            elif any(kw in title for kw in ["แจ้งเตือน", "ระวัง", "น้ำท่วม"]):
+                severity = 'Medium'
+            else:
+                severity = 'Low'
+            
+            # ตรวจสอบว่าข่าวนี้มีอยู่แล้วในฐานข้อมูลหรือไม่
             check_sql = "SELECT EXISTS(SELECT 1 FROM disaster_alerts WHERE external_id = %s)"
             already_exists = pg_hook.get_first(check_sql, parameters=(link,))[0]
 
@@ -74,6 +85,16 @@ def fetch_and_load_to_postgres():
                 new_count += 1
             
     logging.info(f"Successfully processed {new_count} new items.")
+
+def test_all_severities():
+    """ฟังก์ชันจำลองการส่งแจ้งเตือนทุกระดับ"""
+    test_data = [
+        ("High", "🔴 สึนามิ (ระดับวิกฤต - สีแดง)"),
+        ("Medium", "🟠 น้ำท่วม (ระดับปานกลาง - สีส้ม)"),
+        ("Low", "🟡 ฝนตกหนัก (ระดับเฝ้าระวัง - สีเหลืองใหม่!)")
+    ]
+    for severity, msg in test_data:
+        send_discord_alert(f"TEST: {msg}", "https://google.com", severity)
 
 default_args = {
     'owner': 'airflow',
@@ -113,6 +134,12 @@ with DAG(
     run_etl = PythonOperator(
         task_id='fetch_news_rss',
         python_callable=fetch_and_load_to_postgres
+    )
+
+    # TASK 3: สำหรับกด Manual Test แจ้งเตือนทุกระดับ
+    test_notification = PythonOperator(
+        task_id='test_discord_severities',
+        python_callable=test_all_severities
     )
 
     setup_db >> run_etl
