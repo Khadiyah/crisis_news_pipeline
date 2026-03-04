@@ -1,6 +1,5 @@
 version: '3.8'
 services:
- #1. PostgreSQL database for storing news.
   postgres:
     image: postgres:13
     environment:
@@ -10,33 +9,34 @@ services:
     ports:
       - "5432:5432"
 
- #2. Apache Airflow (Pipeline Manager)
   airflow-webserver:
     image: apache/airflow:2.7.1
-    # เพิ่มส่วนนี้เพื่อบังคับลง Library ทุกครั้งที่เครื่องติด
-    entrypoint: >
-      bash -c "pip install feedparser pandas tabulate && airflow db upgrade && airflow webserver"
     depends_on:
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      # เพิ่ม requests เข้าไปเพื่อให้ Python ยิง Webhook 
+      - _PIP_ADDITIONAL_REQUIREMENTS=feedparser pandas psycopg2-binary requests
     ports:
       - "8080:8080"
+    # บังคับ init db ก่อนเปิด webserver
+    command: bash -c "airflow db init && airflow webserver"
     volumes:
       - ./dags:/opt/airflow/dags
 
   airflow-scheduler:
     image: apache/airflow:2.7.1
-    # เพิ่มส่วนนี้เหมือนกันเพื่อให้หัวใจหลักมองเห็น Library ด้วย
-    entrypoint: >
-      bash -c "pip install feedparser pandas tabulate && airflow scheduler"
     depends_on:
       - postgres
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      # ต้องใส่ที่นี่ด้วย เพราะ Scheduler คือตัวรันโค้ด Python ใน DAG 
+      - _PIP_ADDITIONAL_REQUIREMENTS=feedparser pandas psycopg2-binary requests
+    # บังคับรอให้ db พร้อมแล้วเปิด scheduler
+    command: scheduler
     volumes:
       - ./dags:/opt/airflow/dags
