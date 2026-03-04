@@ -1,9 +1,15 @@
+# IDE Settings
+.vscode/
+
+# Airflow & Docker Runtime
 logs/
 plugins/
 postgres_data/
 __pycache__/
+
+# OS specific files
 .DS_Store
 
-# Database files
+# Database files (Local)
 dags/disaster.db
 disaster.db
