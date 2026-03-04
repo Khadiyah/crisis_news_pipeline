@@ -37,6 +37,15 @@ def classify_disaster(title):
     elif "สึนามิ" in title: return "Tsunami"
     else: return "Other"
 
+# ✨ เพิ่มฟังก์ชันแปลงคะแนนเป็นสีตรงนี้ครับ
+def get_severity_display(score):
+    if score >= 4:
+        return "🔴 ระดับวิกฤต (High)"
+    elif score >= 2:
+        return "🟠 ระดับปานกลาง (Medium)"
+    else:
+        return "🟡 ระดับเฝ้าระวัง (Low)"
+
 def run_ai_scoring():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -71,7 +80,7 @@ def run_ai_scoring():
     summary = df.groupby(['province_id', 'province', 'disaster_type']).agg(
         frequency=('id', 'count'),          
         total_sent_score=('sent_score', 'sum'),
-        total_keyword_risk=('keyword_risk', 'sum') # เอาคะแนน Keyword มารวมด้วย
+        total_keyword_risk=('keyword_risk', 'sum') 
     ).reset_index()
 
     # 🌟 สูตรคำนวณ Severity ขั้นเทพ: ความถี่ข่าว + AI Score + Keyword Score
@@ -85,9 +94,13 @@ def run_ai_scoring():
         dis_type = row['disaster_type']
         sev_level = row['severity_level']
         
+        # ✨ ดึงค่าสีและข้อความมาใช้ตรงนี้
+        severity_display = get_severity_display(sev_level)
+        
         print(f"📌 {prov_name} | ภัยพิบัติ: {dis_type}")
         print(f"   - ความถี่: {row['frequency']} | AI Score: {row['total_sent_score']} | Keyword Risk: {row['total_keyword_risk']}")
-        print(f"   - ⚠️ ระดับความรุนแรงสุทธิ: {sev_level}/5 ดาว")
+        # ✨ ปริ้นท์ออกเป็นไอคอนสี
+        print(f"   - ⚠️ ความรุนแรงสุทธิ: {severity_display}")
         print("-" * 50)
 
         c.execute("UPDATE news SET risk_level = ?, sentiment = ?, disaster_type = ? WHERE province_id = ? AND title LIKE ?", 

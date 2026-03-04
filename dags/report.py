@@ -21,6 +21,15 @@ def calculate_severity(title):
     # กำหนดขั้นต่ำ = 1 และสูงสุด = 5
     return min(max(score, 1), 5)
 
+# ✨ ฟังก์ชันใหม่: แปลงคะแนนเป็น สี และ ระดับข้อความ
+def get_severity_display(score):
+    if score >= 4:
+        return "🔴 ระดับวิกฤต (High)"
+    elif score >= 2:
+        return "🟠 ระดับปานกลาง (Medium)"
+    else:
+        return "🟡 ระดับเฝ้าระวัง (Low)"
+
 def generate_summary():
     # เช็คว่ามีไฟล์ Database หรือยัง
     if not os.path.exists(DB_NAME):
@@ -50,7 +59,10 @@ def generate_summary():
 
     for title, province in rows:
         province_name = province if province else "ไม่ระบุจังหวัด"
-        severity = calculate_severity(title)
+        severity_score = calculate_severity(title)
+        
+        # ✨ เรียกใช้ฟังก์ชันแปลงสีตรงนี้
+        severity_display = get_severity_display(severity_score)
 
         if "แผ่นดินไหว" in title:
             disaster_type = "🌍 แผ่นดินไหว"
@@ -61,7 +73,8 @@ def generate_summary():
 
         print(f"{disaster_type}")
         print(f"📌 สถานที่: {province_name}")
-        print(f"⚠️ ระดับความรุนแรง: {severity}/5")
+        # ✨ แสดงผลลัพธ์แบบใหม่ที่อ่านง่ายขึ้น
+        print(f"⚠️ ความรุนแรง: {severity_display}")
         print(f"📰 หัวข้อข่าว: {title}") 
         print("-" * 50)
 
