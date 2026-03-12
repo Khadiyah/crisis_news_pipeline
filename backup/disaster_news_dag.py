@@ -86,15 +86,15 @@ def fetch_and_load_to_postgres():
             
     logging.info(f"Successfully processed {new_count} new items.")
 
-def test_all_severities():
-    """ฟังก์ชันจำลองการส่งแจ้งเตือนทุกระดับ"""
-    test_data = [
-        ("High", "🔴 สึนามิ (ระดับวิกฤต - สีแดง)"),
-        ("Medium", "🟠 น้ำท่วม (ระดับปานกลาง - สีส้ม)"),
-        ("Low", "🟡 ฝนตกหนัก (ระดับเฝ้าระวัง - สีเหลืองใหม่!)")
-    ]
-    for severity, msg in test_data:
-        send_discord_alert(f"TEST: {msg}", "https://google.com", severity)
+# def test_all_severities():
+#     """ฟังก์ชันจำลองการส่งแจ้งเตือนทุกระดับ"""
+#     test_data = [
+#         ("High", "🔴 สึนามิ (ระดับวิกฤต - สีแดง)"),
+#         ("Medium", "🟠 น้ำท่วม (ระดับปานกลาง - สีส้ม)"),
+#         ("Low", "🟡 ฝนตกหนัก (ระดับเฝ้าระวัง - สีเหลืองใหม่!)")
+#     ]
+#     for severity, msg in test_data:
+#         send_discord_alert(f"TEST: {msg}", "https://google.com", severity)
 
 default_args = {
     'owner': 'airflow',
@@ -137,9 +137,9 @@ with DAG(
     )
 
     # TASK 3: สำหรับกด Manual Test แจ้งเตือนทุกระดับ
-    test_notification = PythonOperator(
-        task_id='test_discord_severities',
-        python_callable=test_all_severities
-    )
+    # test_notification = PythonOperator(
+    #     task_id='test_discord_severities',
+    #     python_callable=test_all_severities
+    # )
 
     setup_db >> run_etl
