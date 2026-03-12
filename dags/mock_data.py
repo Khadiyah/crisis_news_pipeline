@@ -1,8 +1,23 @@
 import sqlite3
 import os
+import requests
 
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1478580196314452050/Rbo7zMAcUw3csQWV5mpoj3JCSBDtjRLbkvTw69H5G1OC18yKgx59-QR3fFtKlE_rPA7t"
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(BASE_PATH, "disaster.db")
+
+def send_mock_alert(title):
+    """ส่งแจ้งเตือนข้อมูลจำลอง"""
+    payload = {
+        "username": "Warning Center (Mock)",
+        "embeds": [{
+            "title": "🧪 ข้อมูลทดสอบ (Mock Data)",
+            "description": title,
+            "color": 3447003 # สีฟ้าสำหรับข้อมูลทดสอบ
+        }]
+    }
+    requests.post(DISCORD_WEBHOOK_URL, json=payload)
+
 
 def insert_mock_data():
     conn = sqlite3.connect(DB_NAME)
@@ -45,6 +60,14 @@ def insert_mock_data():
         print(f"❌ Error: {e}")
     finally:
         conn.close()
+
+    for title, link, date, source, prov_id in mock_news:
+            # ส่งเทสเข้า Discord ทุกข่าวที่สร้าง
+            send_mock_alert(title)
+            
+            conn.commit()
+            conn.close()
+            print("✅ Mock alerts sent to Discord!")
 
 if __name__ == "__main__":
     insert_mock_data()

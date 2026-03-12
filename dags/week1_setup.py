@@ -1,149 +1,3 @@
-# from airflow import DAG
-# from airflow.operators.python import PythonOperator
-# from datetime import datetime, timedelta, timezone
-# import time
-# import sqlite3
-# import feedparser
-# import pandas as pd
-# import urllib.parse
-# from tabulate import tabulate
-# import os
-
-# # --- CONFIGURATION ---
-# BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-# DB_NAME = os.path.join(BASE_PATH, "disaster.db")
-
-# KEYWORDS_LIST = ["น้ำท่วม", "ไฟไหม้", "แผ่นดินไหว", "สึนามิ", "ดินถล่ม"]
-# SEARCH_QUERY = " ".join(KEYWORDS_LIST)
-# ENCODED_QUERY = urllib.parse.quote(SEARCH_QUERY)
-
-# RSS_URLS = [
-#     f"https://news.google.com/rss/search?q={ENCODED_QUERY}&hl=th-TH&gl=TH&ceid=TH:th",
-#     "https://www.thaipbs.or.th/rss/news",
-#     "https://www.thairath.co.th/rss/news",
-#     "http://www.tmd.go.th/service/rss",
-#     "https://www.springnews.co.th/rss/news"
-# ]
-
-# PROVINCES_LIST = [
-#     "กระบี่", "กรุงเทพมหานคร", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร",
-#     "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท",
-#     "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง",
-#     "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม",
-#     "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส",
-#     "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์",
-#     "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา",
-#     "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์",
-#     "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน",
-#     "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง",
-#     "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย",
-#     "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ",
-#     "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี",
-#     "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย",
-#     "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์",
-#     "อุทัยธานี", "อุบลราชธานี"
-# ]
-
-# # --- FUNCTIONS (LOGIC) ---
-# def run_pipeline():
-#     # 1. Init DB
-#     conn = sqlite3.connect(DB_NAME)
-#     c = conn.cursor()
-#     c.execute('CREATE TABLE IF NOT EXISTS provinces (id INTEGER PRIMARY KEY AUTOINCREMENT, name_th TEXT UNIQUE NOT NULL)')
-#     c.execute('''CREATE TABLE IF NOT EXISTS news (
-#                     id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, link TEXT UNIQUE,
-#                     published_date TEXT, source TEXT, risk_level INTEGER DEFAULT 0,
-#                     province_id INTEGER, FOREIGN KEY (province_id) REFERENCES provinces(id))''')
-    
-#     # 2. Seed Provinces
-#     for province in PROVINCES_LIST:
-#         c.execute("INSERT OR IGNORE INTO provinces (name_th) VALUES (?)", (province,))
-        
-#     # 3. Loop Fetch & Filter
-#     total_new_count = 0
-    
-#     # ดึงย้อนหลัง 12 ชั่วโมง
-#     freshness_threshold = datetime.now(timezone.utc) - timedelta(hours=12)
-
-#     for url in RSS_URLS:
-#         print(f"🔄 Fetching from: {url}")
-#         feed = feedparser.parse(url)
-        
-#         for entry in feed.entries:
-#             # 1. TIME FILTER: ตรวจสอบเวลาของข่าว
-#             entry_date_struct = entry.get('published_parsed')
-#             if entry_date_struct:
-#                 entry_date = datetime(*entry_date_struct[:6], tzinfo=timezone.utc)
-#                 if entry_date < freshness_threshold:
-#                     continue
-
-#             title = entry.title
-#             link = entry.link
-            
-#             # 1. DATA CLEANING
-#             clean_title = title.replace("-", "").replace(" ", "").replace("\u200b", "")
-            
-#             # 2. KEYWORD FILTER
-#             is_disaster = False
-#             if "tmd.go.th" in url:
-#                 is_disaster = True 
-#             else:
-#                 if any(kw in clean_title for kw in KEYWORDS_LIST):
-#                     is_disaster = True
-            
-#             if not is_disaster:
-#                 continue 
-
-#             # 3. THAILAND ONLY FILTER
-#             matched_province_id = None
-#             for prov in PROVINCES_LIST:
-#                 if prov in title:
-#                     c.execute("SELECT id FROM provinces WHERE name_th=?", (prov,))
-#                     res = c.fetchone()
-#                     if res: 
-#                         matched_province_id = res[0]
-#                     break 
-            
-#             # ไม่มีจังหวัด = ทิ้ง
-#             if matched_province_id is None:
-#                 continue 
-
-#             # --- บันทึกลง Database ---
-#             published = entry.published if 'published' in entry else str(datetime.now())
-#             source = entry.source.title if 'source' in entry else 'News Source'
-            
-#             try:
-#                 c.execute('INSERT OR IGNORE INTO news (title, link, published_date, source, province_id) VALUES (?, ?, ?, ?, ?)', 
-#                           (title, link, published, source, matched_province_id))
-#                 if c.rowcount > 0: total_new_count += 1
-#             except: pass
-            
-#     conn.commit()
-#     conn.close()
-#     print(f"✅ Finished! Added {total_new_count} relevant & FRESH news items.")
-
-# # --- DAG DEFINITION ---
-# default_args = {
-#     'owner': 'crisis_team',
-#     'depends_on_past': False,
-#     'start_date': datetime(2026, 2, 1), 
-#     'retries': 1,
-#     'retry_delay': timedelta(minutes=5),
-# }
-
-# with DAG(
-#     'week1_crisis_ingestion',
-#     default_args=default_args,
-#     description='Pipeline ดึงข่าวภัยพิบัติ สัปดาห์ที่ 1',
-#     schedule=timedelta(minutes=15),
-#     catchup=False
-# ) as dag:
-
-#     task_fetch_news = PythonOperator(
-#         task_id='fetch_crisis_news',
-#         python_callable=run_pipeline
-#     )
-
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta, timezone
@@ -154,6 +8,29 @@ import pandas as pd
 import urllib.parse
 from tabulate import tabulate
 import os
+import requests
+import json
+
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1478580196314452050/Rbo7zMAcUw3csQWV5mpoj3JCSBDtjRLbkvTw69H5G1OC18yKgx59-QR3fFtKlE_rPA7t"
+
+def send_discord_alert(title, severity, link="https://google.com"):
+    if severity == 'High' or severity >= 4:
+        color = 15158332 # แดง
+    elif severity == 'Medium' or severity >= 2:
+        color = 15105570 # ส้ม
+    else:
+        color = 16776960 # เหลือง
+    
+    payload = {
+        "username": "Warning Center",
+        "embeds": [{
+            "title": "🚨 รายงานวิเคราะห์ภัยพิบัติ!",
+            "description": f"**หัวข้อ:** {title}\n**ระดับความรุนแรง:** {severity}",
+            "color": color,
+            "footer": {"text": "ระบบวิเคราะห์อัตโนมัติ"}
+        }]
+    }
+    requests.post(DISCORD_WEBHOOK_URL, json=payload)
 
 # --- CONFIGURATION ---
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))

@@ -1,13 +1,35 @@
 import sqlite3
 import pandas as pd
 import os
+import requests
 from transformers import pipeline
 
-# --- CONFIGURATION ---
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1478580196314452050/Rbo7zMAcUw3csQWV5mpoj3JCSBDtjRLbkvTw69H5G1OC18yKgx59-QR3fFtKlE_rPA7t"
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(BASE_PATH, "disaster.db")
 
-print("⏳ กำลังโหลดโมเดล AI ภาษาไทย (WangchanBERTa)...")
+def send_ai_discord_alert(province, dis_type, sev_level):
+    """ส่งผลวิเคราะห์ AI เข้า Discord"""
+    if sev_level >= 4:
+        color, label = 15158332, "High"
+    elif sev_level >= 2:
+        color, label = 15105570, "Medium"
+    else:
+        color, label = 16776960, "Low"
+
+    payload = {
+        "username": "Warning Center (AI)",
+        "embeds": [{
+            "title": "🤖 AI Analysis Result",
+            "description": f"**จังหวัด:** {province}\n**ประเภทภัย:** {dis_type}\n**ความรุนแรงสุทธิ:** {label}",
+            "color": color,
+            "footer": {"text": "Analyzed by WangchanBERTa"}
+        }]
+    }
+    try:
+        requests.post(DISCORD_WEBHOOK_URL, json=payload)
+    except: pass
+
 sentiment_analyzer = pipeline("sentiment-analysis", model="poom-sci/WangchanBERTa-finetuned-sentiment")
 
 def get_ai_sentiment(text):
@@ -90,21 +112,9 @@ def run_ai_scoring():
     print("\n===== 🚨 สรุปความรุนแรงภัยพิบัติ (HYBRID SEVERITY REPORT) 🚨 =====")
     
     for index, row in summary.iterrows():
-        prov_name = row['province']
-        dis_type = row['disaster_type']
-        sev_level = row['severity_level']
-        
-        # ✨ ดึงค่าสีและข้อความมาใช้ตรงนี้
-        severity_display = get_severity_display(sev_level)
-        
-        print(f"📌 {prov_name} | ภัยพิบัติ: {dis_type}")
-        print(f"   - ความถี่: {row['frequency']} | AI Score: {row['total_sent_score']} | Keyword Risk: {row['total_keyword_risk']}")
-        # ✨ ปริ้นท์ออกเป็นไอคอนสี
-        print(f"   - ⚠️ ความรุนแรงสุทธิ: {severity_display}")
-        print("-" * 50)
-
-        c.execute("UPDATE news SET risk_level = ?, sentiment = ?, disaster_type = ? WHERE province_id = ? AND title LIKE ?", 
-                 (sev_level, "Calculated", dis_type, row['province_id'], f"%{dis_type}%"))
+        # ส่งเข้า Discord รายจังหวัด
+        send_ai_discord_alert(row['province'], row['disaster_type'], row['severity_level'])
+        print(f"🤖 AI Alert Sent: {row['province']}")
 
     for index, row in df.iterrows():
         c.execute("UPDATE news SET sentiment = ?, disaster_type = ? WHERE id = ?", (row['sentiment'], row['disaster_type'], row['id']))
