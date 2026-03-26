@@ -4,7 +4,7 @@ import psycopg2
 import os
 
 # --- 1. CONFIGURATION ---
-TOKEN = 'MTQ4MTU4NzA0MTYzMTMzODU4Nw.GiS52i.lEFeupjE1p6ogVaakD1fhopvP5TiIZlXKQm6I4'
+TOKEN = ''
 TARGET_CHANNEL_NAME = "ask-bot"  # <--- ตั้งชื่อห้องที่อยากให้บอทตอบตรงนี้!
 
 intents = discord.Intents.default()
