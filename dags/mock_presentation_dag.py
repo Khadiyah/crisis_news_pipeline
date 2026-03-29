@@ -45,7 +45,8 @@ def dummy_ai_scoring():
 
     for news in mock_news_list:
         payload = {
-            "username": "Crisis Warning Center",
+            "username": "Crisis Warning Center", 
+            "avatar_url": "https://cdn-icons-png.flaticon.com/512/564/564619.png",
             "embeds": [{
                 "title": f"🚨 รายงานภัยพิบัติ: {news['province']}",
                 "description": f"**📌 หัวข้อ:** {news['headline']}\n**⚠️ ระดับความรุนแรง:** {news['level']}",
