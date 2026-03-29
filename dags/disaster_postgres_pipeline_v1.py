@@ -81,7 +81,8 @@ def run_ai_and_notify():
         map_url = f"https://static-maps.yandex.ru/1.x/?lang=en_US&ll={coords[1]},{coords[0]}&z=10&l=map&size=450,250&pt={coords[1]},{coords[0]},pm2{pt_color}m"
 
         payload = {
-            "username": "Crisis Warning Center",
+            "username": "Crisis Warning Center", 
+            "avatar_url": "https://cdn-icons-png.flaticon.com/512/564/564619.png",
             "embeds": [{
                 "title": f"🚨 รายงานภัยพิบัติ: {prov}",
                 "description": f"**📌 หัวข้อ:** {title}\n**⚠️ ระดับความรุนแรง:** {label}",
