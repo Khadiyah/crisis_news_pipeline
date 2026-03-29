@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_6f6422507a8a837ebb6cadf101f330c1 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_6f6422507a8a837ebb6cadf101f330c1" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_6f6422507a8a837ebb6cadf101f330c1 = L.map(
+                "map_6f6422507a8a837ebb6cadf101f330c1",
+                {
+                    center: [15.87, 100.9925],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 6,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_c1adaa92ea166e8a72823a2d740a1bd0 = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_c1adaa92ea166e8a72823a2d740a1bd0.addTo(map_6f6422507a8a837ebb6cadf101f330c1);
+        
+    
+            var marker_1ff6e37cbb439155157a2a68bccf7471 = L.marker(
+                [19.9105, 99.8406],
+                {
+}
+            ).addTo(map_6f6422507a8a837ebb6cadf101f330c1);
+        
+    
+            var icon_07601f5309b6db32fe3726d8f1cf7879 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_76827adf61169cd76fab2003ab9a1ab2 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_f892cc8c5ccb9e5e3e2f56c19d3efe56 = $(`<div id="html_f892cc8c5ccb9e5e3e2f56c19d3efe56" style="width: 100.0%; height: 100.0%;"> <div style="font-family: Tahoma; min-width: 250px;">     <h4 style="margin-top:0px; color:red;">🚨 เชียงราย</h4>     <b>⚠️ ความรุนแรง:</b> วิกฤต (High)<br><br>     <b>พาดหัวข่าว:</b> <br><i>ด่วน! น้ำท่วมฉับพลัน แม่น้ำสายทะลักเข้าท่วมตัวเมือง อพยพชาวบ้านวุ่น</i> </div> </div>`)[0];
+                popup_76827adf61169cd76fab2003ab9a1ab2.setContent(html_f892cc8c5ccb9e5e3e2f56c19d3efe56);
+            
+        
+
+        marker_1ff6e37cbb439155157a2a68bccf7471.bindPopup(popup_76827adf61169cd76fab2003ab9a1ab2)
+        ;
+
+        
+    
+    
+            marker_1ff6e37cbb439155157a2a68bccf7471.bindTooltip(
+                `<div>
+                     เชียงราย - วิกฤต (High)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_1ff6e37cbb439155157a2a68bccf7471.setIcon(icon_07601f5309b6db32fe3726d8f1cf7879);
+            
+    
+            var marker_e035a5e2b47c43e80e92dfcb84fdc571 = L.marker(
+                [18.7883, 98.9853],
+                {
+}
+            ).addTo(map_6f6422507a8a837ebb6cadf101f330c1);
+        
+    
+            var icon_92657e57786465581193c68eeaa0dae5 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "orange",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_fe69d279b601cebfff2ddd6df3c1c893 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_d92b6fbd3138b418b36c4d78388ff32c = $(`<div id="html_d92b6fbd3138b418b36c4d78388ff32c" style="width: 100.0%; height: 100.0%;"> <div style="font-family: Tahoma; min-width: 250px;">     <h4 style="margin-top:0px; color:orange;">🚨 เชียงใหม่</h4>     <b>⚠️ ความรุนแรง:</b> ปานกลาง (Medium)<br><br>     <b>พาดหัวข่าว:</b> <br><i>แผ่นดินไหวขนาด 3.2 ศูนย์กลางสันทราย มีผู้บาดเจ็บเล็กน้อย</i> </div> </div>`)[0];
+                popup_fe69d279b601cebfff2ddd6df3c1c893.setContent(html_d92b6fbd3138b418b36c4d78388ff32c);
+            
+        
+
+        marker_e035a5e2b47c43e80e92dfcb84fdc571.bindPopup(popup_fe69d279b601cebfff2ddd6df3c1c893)
+        ;
+
+        
+    
+    
+            marker_e035a5e2b47c43e80e92dfcb84fdc571.bindTooltip(
+                `<div>
+                     เชียงใหม่ - ปานกลาง (Medium)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_e035a5e2b47c43e80e92dfcb84fdc571.setIcon(icon_92657e57786465581193c68eeaa0dae5);
+            
+    
+            var marker_feb2f8e35ce98a5fa095b916faa73a8d = L.marker(
+                [17.8785, 102.742],
+                {
+}
+            ).addTo(map_6f6422507a8a837ebb6cadf101f330c1);
+        
+    
+            var icon_70faa3fd68b48df427cb18efa9ea6953 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "lightgreen",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_4ec134c7edfab22c0b0ae4f11f13c977 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_cef38b5f3274d947ff84914079f10e05 = $(`<div id="html_cef38b5f3274d947ff84914079f10e05" style="width: 100.0%; height: 100.0%;"> <div style="font-family: Tahoma; min-width: 250px;">     <h4 style="margin-top:0px; color:lightgreen;">🚨 หนองคาย</h4>     <b>⚠️ ความรุนแรง:</b> เฝ้าระวัง (Low)<br><br>     <b>พาดหัวข่าว:</b> <br><i>ประกาศเตือน เฝ้าระวังระดับน้ำโขงเพิ่มสูงขึ้นต่อเนื่อง</i> </div> </div>`)[0];
+                popup_4ec134c7edfab22c0b0ae4f11f13c977.setContent(html_cef38b5f3274d947ff84914079f10e05);
+            
+        
+
+        marker_feb2f8e35ce98a5fa095b916faa73a8d.bindPopup(popup_4ec134c7edfab22c0b0ae4f11f13c977)
+        ;
+
+        
+    
+    
+            marker_feb2f8e35ce98a5fa095b916faa73a8d.bindTooltip(
+                `<div>
+                     หนองคาย - เฝ้าระวัง (Low)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_feb2f8e35ce98a5fa095b916faa73a8d.setIcon(icon_70faa3fd68b48df427cb18efa9ea6953);
+            
+</script>
+</html>
