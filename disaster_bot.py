@@ -27,16 +27,27 @@ async def on_ready():
         conn = get_db_connection()
         cur = conn.cursor()
         # คำสั่งสร้างตารางแบบสมบูรณ์
+        # cur.execute("""
+        #     CREATE TABLE IF NOT EXISTS disaster_news (
+        #         id SERIAL PRIMARY KEY,
+        #         title TEXT UNIQUE,
+        #         link TEXT,
+        #         province TEXT,
+        #         severity_score INTEGER DEFAULT 0,
+        #         disaster_type TEXT,
+        #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        #     );
+        # """)
+        # conn.commit()
+        
+        # ข้อมูลจำลองลงไปสำหรับmock 
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS disaster_news (
-                id SERIAL PRIMARY KEY,
-                title TEXT UNIQUE,
-                link TEXT,
-                province TEXT,
-                severity_score INTEGER DEFAULT 0,
-                disaster_type TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+            INSERT INTO disaster_news (province, title, severity_score) 
+            VALUES 
+            ('เชียงใหม่', '🚨 ประกาศเฝ้าระวังแผ่นดินไหวในพื้นที่สันทราย', 3),
+            ('เชียงราย', '🔴 วิกฤต! น้ำท่วมฉับพลันแม่น้ำสายทะลักเข้าท่วมตัวเมือง', 5),
+            ('หนองคาย', '🟡 ประกาศเตือนระดับน้ำโขงเพิ่มสูงขึ้นต่อเนื่อง', 1)
+            ON CONFLICT (title) DO NOTHING;
         """)
         conn.commit()
         cur.close()
@@ -57,18 +68,19 @@ async def check(ctx, province: str):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        query = "SELECT title, severity_score, link FROM disaster_news WHERE province LIKE %s ORDER BY created_at DESC LIMIT 1"
-        cur.execute(query, (f'%{province}%',))
+        # ใช้ ILIKE เพื่อให้ไม่สนตัวพิมพ์เล็ก-ใหญ่ และ % เพื่อให้ค้นหาคำที่ใกล้เคียง
+        query = "SELECT title, severity_score FROM disaster_news WHERE province ILIKE %s ORDER BY created_at DESC LIMIT 1"
+        cur.execute(query, (f'%{province.strip()}%',)) # .strip() เพื่อตัดช่องว่างหน้า-หลังออก
         result = cur.fetchone()
 
         if result:
-            title, score, link = result
+            title, score = result
             level = "🔴 สูงวิกฤต" if score >= 4 else "🟠 ปานกลาง" if score >= 2 else "🟡 เฝ้าระวัง"
             
             embed = discord.Embed(title=f"🚨 รายงานด่วน: {province}", color=discord.Color.red())
             embed.add_field(name="หัวข้อข่าว", value=title, inline=False)
             embed.add_field(name="ระดับความรุนแรง", value=level, inline=True)
-            embed.add_field(name="ลิงก์ข่าว", value=f"[คลิกเพื่ออ่าน]({link})", inline=True)
+            # embed.add_field(name="ลิงก์ข่าว", value=f"[คลิกเพื่ออ่าน]({link})", inline=True)
             await ctx.send(embed=embed)
         else:
             await ctx.send(f"❓ ยังไม่พบรายงานภัยพิบัติในพื้นที่ **{province}** ในระบบครับ")
