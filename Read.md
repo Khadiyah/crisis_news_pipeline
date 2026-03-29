@@ -35,3 +35,4 @@
 1. Insert your Discord Bot Token into the `TOKEN` variable inside the `disaster_bot.py` file.
 2. Open a new Terminal window and run the command: `python disaster_bot.py`
 3. The bot will instantly come online in Discord. You can now use the command `/check [province_name]` directly in the chat channel.
+** It cannot run automatically without the Discord bot token that was created because it is a Discord token that cannot be publicly distributed. **
