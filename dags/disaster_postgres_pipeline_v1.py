@@ -82,7 +82,7 @@ def run_ai_and_notify():
 
         payload = {
             "username": "Crisis Warning Center", 
-            "avatar_url": "https://cdn-icons-png.flaticon.com/512/564/564619.png", 
+            "avatar_url": "https://cdn-icons-png.flaticon.com/512/564/564619.png",
             "embeds": [{
                 "title": f"🚨 รายงานภัยพิบัติ: {prov}",
                 "description": f"**📌 หัวข้อ:** {title}\n**⚠️ ระดับความรุนแรง:** {label}",

@@ -14,32 +14,51 @@ def dummy_ingest():
 def dummy_ai_scoring():
     import requests
     import time
-    print("🧠 แกล้งทำเป็นกำลังใช้ AI วิเคราะห์ความรุนแรง...")
+    from airflow.providers.postgres.hooks.postgres import PostgresHook 
+    
+    print("🧠 กำลังวิเคราะห์ AI และบันทึกข้อมูลลง Database (จำลอง)...")
     time.sleep(2)
     
-    # ข้อมูลจำลอง (Mock Data) ครบ 3 จังหวัด 3 สี!
+    # --- ส่วนที่ 1: บันทึกข้อมูลลง Database เพื่อให้บอท /check เจอ ---
+    try:
+        pg_hook = PostgresHook(postgres_conn_id='postgres_default')  
+        
+        # เตรียมข้อมูล Mock เข้า Database
+        mock_data_for_db = [
+            ("เชียงราย", "ด่วน! น้ำท่วมฉับพลัน แม่น้ำสายทะลักเข้าท่วมตัวเมือง อพยพชาวบ้านวุ่น", 5),
+            ("เชียงใหม่", "แผ่นดินไหวขนาด 3.2 ศูนย์กลางสันทราย รับรู้แรงสั่นสะเทือน มีผู้บาดเจ็บเล็กน้อย", 3),
+            ("หนองคาย", "ประกาศเตือน เฝ้าระวังระดับน้ำโขงเพิ่มสูงขึ้นต่อเนื่อง", 1)
+        ]
+        
+        for prov, title, score in mock_data_for_db:
+            sql = "INSERT INTO disaster_news (province, title, severity_score) VALUES (%s, %s, %s) ON CONFLICT (title) DO NOTHING" #
+            pg_hook.run(sql, parameters=(prov, title, score))
+        print("✅ บันทึกข้อมูลจำลองลง Postgres เรียบร้อยแล้ว!")
+    except Exception as e:
+        print(f"❌ บันทึกลง Database ไม่สำเร็จ (แต่จะส่ง Discord ต่อ): {e}")
+
+    # --- ส่วนที่ 2: เตรียมส่งการ์ดเข้า Discord  ---
     mock_news_list = [
         {
             "province": "เชียงราย",
             "headline": "ด่วน! น้ำท่วมฉับพลัน แม่น้ำสายทะลักเข้าท่วมตัวเมือง อพยพชาวบ้านวุ่น",
             "level": "🔴 วิกฤต (High)",
-            "color": 15158332,
-            "map_img": "https://static-maps.yandex.ru/1.x/?lang=en_US&ll=99.8406,19.9105&z=10&l=map&size=450,250&pt=99.8406,19.9105,pm2rdm"
+            "color": 15158332, #
+            "map_img": "https://static-maps.yandex.ru/1.x/?lang=en_US&ll=99.8406,19.9105&z=10&l=map&size=450,250&pt=99.8406,19.9105,pm2rdm" #
         },
         {
             "province": "เชียงใหม่",
             "headline": "แผ่นดินไหวขนาด 3.2 ศูนย์กลางสันทราย รับรู้แรงสั่นสะเทือน มีผู้บาดเจ็บเล็กน้อย",
             "level": "🟠 ปานกลาง (Medium)",
-            "color": 15105570,
-            "map_img": "https://static-maps.yandex.ru/1.x/?lang=en_US&ll=98.9853,18.7883&z=10&l=map&size=450,250&pt=98.9853,18.7883,pm2orm"
+            "color": 15105570, #
+            "map_img": "https://static-maps.yandex.ru/1.x/?lang=en_US&ll=98.9853,18.7883&z=10&l=map&size=450,250&pt=98.9853,18.7883,pm2orm" #
         },
         {
             "province": "หนองคาย",
             "headline": "ประกาศเตือน เฝ้าระวังระดับน้ำโขงเพิ่มสูงขึ้นต่อเนื่อง",
             "level": "🟡 เฝ้าระวัง (Low)",
-            "color": 16776960,
-            # รูปแผนที่จำลองของจังหวัดหนองคาย (หมุดเขียว)
-            "map_img": "https://static-maps.yandex.ru/1.x/?lang=en_US&ll=102.7420,17.8785&z=10&l=map&size=450,250&pt=102.7420,17.8785,pm2grm"
+            "color": 16776960, #
+            "map_img": "https://static-maps.yandex.ru/1.x/?lang=en_US&ll=102.7420,17.8785&z=10&l=map&size=450,250&pt=102.7420,17.8785,pm2grm" #
         }
     ]
 
